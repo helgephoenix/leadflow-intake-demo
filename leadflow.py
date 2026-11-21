@@ -1,5 +1,5 @@
 """LeadFlow: zero-paid-API lead intake demo. Local loopback only."""
-import argparse, csv, hashlib, json, re, sqlite3
+import argparse, csv, hashlib, json, math, re, sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
@@ -10,6 +10,12 @@ LIMIT = 64 * 1024
 
 def clean(value, limit):
     return " ".join(value.split())[:limit] if isinstance(value, str) else ""
+
+def csv_safe(value):
+    """Prevent spreadsheet formula execution when exporting untrusted lead fields."""
+    if isinstance(value, str) and value.lstrip().startswith(("=", "+", "-", "@")):
+        return "'" + value
+    return value
 
 class Store:
     def __init__(self, dbpath):
@@ -48,6 +54,7 @@ class Store:
         if not name or not EMAIL.fullmatch(email):
             return 400, {"error": "Valid name and email required"}
         if (isinstance(budget, bool) or not isinstance(budget, (int, float))
+                or (isinstance(budget, float) and not math.isfinite(budget))
                 or int(budget) != budget or not 0 <= budget <= 10_000_000):
             return 400, {"error": "Invalid budget"}
         budget = int(budget)
@@ -85,7 +92,7 @@ class Store:
         with self.connect() as db, open(filename, "w", newline="", encoding="utf-8") as f:
             w=csv.writer(f)
             w.writerow(["id","name","email","source","company","budget_usd","priority","created"])
-            w.writerows(db.execute(
+            w.writerows((csv_safe(value) for value in row) for row in db.execute(
                 "SELECT id,name,email,source,company,budget_usd,priority,created FROM leads ORDER BY id"))
 
 def make_handler(store):

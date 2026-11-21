@@ -15,6 +15,13 @@ Sample request:
 
 The POST endpoint returns 201 for a new lead and 200 for an email+source duplicate. GET /health shows counts. High-priority leads create **unsent** outbox events.
 
+### Input validation and spreadsheet safety
+
+- Lead budgets must be finite whole-dollar amounts within the accepted range; `NaN`, positive/negative infinity, and out-of-range values are rejected without crashing the HTTP handler.
+- CSV export prefixes spreadsheet-formula-looking text (leading `=`, `+`, `-`, or `@`) with an apostrophe. This protects common spreadsheet import workflows, but spreadsheet behavior varies by application. The underlying SQLite record is unchanged; consumers requiring raw data should integrate directly with a validated API instead of opening CSV in a spreadsheet.
+- The demonstration includes loopback HTTP regression tests and cross-version CI on Python 3.11 and 3.12.
+- **Not production-ready:** public deployment still requires authentication, HTTPS, authorization, secrets management, retention and deletion policies, and rate limiting.
+
 ### Fixed-scope freelance service
 
 For a client-approved first milestone: integrate one lead source with one destination (CRM, Airtable, Google Sheets or another API); include validation, idempotency, error logging, a runnable test, and a handover. I can provide a scope and estimate based on sample payloads and credentials supplied securely by the client.

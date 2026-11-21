@@ -1,0 +1,23 @@
+name: Python regression tests
+on:
+  push:
+    branches:
+      - "mira/leadflow-input-csv-hardening-20261121"
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Run zero-dependency unit and loopback HTTP tests
+        run: python -m unittest -v test_leadflow.py
